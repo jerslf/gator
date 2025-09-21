@@ -1,63 +1,57 @@
-# gator
+# Gator
 
-gator is a small CLI and web app for managing RSS/Atom feeds and posts.
+A multi-player command line tool for aggregating RSS feeds and viewing the posts.
 
-**Prerequisites**
+## Installation
 
-- Go (1.20+ recommended) installed: https://go.dev/doc/install
-- PostgreSQL installed and running: https://www.postgresql.org/download/
-
-**Install the CLI**
-Install the `gator` CLI with `go install` from the repo root (module path is read from `go.mod`):
+Make sure you have the latest [Go toolchain](https://golang.org/dl/) installed as well as a local Postgres database. You can then install `gator` with:
 
 ```bash
-# from the repository root
-go install
+go install ...
 ```
 
-If your `GOPATH/bin` (or the new `GOBIN`) is in your PATH, the `gator` binary will be available as `gator`.
+## Config
 
-**Configuration**
-gator looks for a config file in your home directory named `.gatorconfig.json` by default. Create it with the following fields:
+Create a `.gatorconfig.json` file in your home directory with the following structure:
 
 ```json
 {
-  "db_url": "postgres://username:password@localhost:5432/gatordb?sslmode=disable"
+  "db_url": "postgres://username:@localhost:5432/database?sslmode=disable"
 }
 ```
 
-Replace the `db_url` with your Postgres connection string.
+Replace the values with your database connection string.
 
-Before running commands, apply the SQL schema migrations found in the `sql/schema` directory to your database. The files are written in a goose-style format with `-- +goose Up` and `-- +goose Down` sections. You can apply only the Up sections manually, or use a migration tool such as `goose`.
+## Usage
 
-Quick manual apply (example, macOS zsh):
-
-```bash
-# set DBURL from your config
-DBURL=$(jq -r .db_url ~/.gatorconfig.json)
-
-# apply the Up section of each migration
-awk '/-- +goose Up/{flag=1;next}/-- +goose Down/{flag=0}flag' sql/schema/001_users.sql | psql "$DBURL"
-awk '/-- +goose Up/{flag=1;next}/-- +goose Down/{flag=0}flag' sql/schema/002_feeds.sql | psql "$DBURL"
-awk '/-- +goose Up/{flag=1;next}/-- +goose Down/{flag=0}flag' sql/schema/003_feed_follows.sql | psql "$DBURL"
-awk '/-- +goose Up/{flag=1;next}/-- +goose Down/{flag=0}flag' sql/schema/004_feed_lastfetched.sql | psql "$DBURL"
-awk '/-- +goose Up/{flag=1;next}/-- +goose Down/{flag=0}flag' sql/schema/005_posts.sql | psql "$DBURL"
-```
-
-Or install `goose` and run `goose up` pointing at the same DB.
-
-**Common commands**
-
-- Add a feed: `gator addfeed "Feed Name" "https://example.com/rss"`
-- List feeds: `gator listfeeds`
-- Fetch posts: `gator fetch` (fetches unread/new posts)
-- Run web server: `gator serve` (starts the HTTP server)
-
-**Run directly**
-You can also run commands directly without installing the binary using `go run` from the repo root, for example:
+Create a new user:
 
 ```bash
-go run . addfeed "Hacker News RSS" "https://hnrss.org/newest"
+gator register <name>
 ```
 
-If you hit `pq: relation "feeds" does not exist`, apply the migrations as shown above — the database tables are missing.
+Add a feed:
+
+```bash
+gator addfeed <url>
+```
+
+Start the aggregator:
+
+```bash
+gator agg 30s
+```
+
+View the posts:
+
+```bash
+gator browse [limit]
+```
+
+There are a few other commands you'll need as well:
+
+- `gator login <name>` - Log in as a user that already exists
+- `gator users` - List all users
+- `gator feeds` - List all feeds
+- `gator follow <url>` - Follow a feed that already exists in the database
+- `gator unfollow <url>` - Unfollow a feed that already exists in the database
